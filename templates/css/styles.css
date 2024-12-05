@@ -1,0 +1,11 @@
+#seating-map {
+    position: relative;
+}
+
+.seat {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+}

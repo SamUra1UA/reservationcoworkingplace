@@ -1,0 +1,20 @@
+{% extends "base_generic.html" %}
+{% block content %}
+<h1 class="text-center">Наші коворкінги</h1>
+<div class="row">
+    {% for space in spaces %}
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                {% if space.image %}
+                    <img src="{{ space.image.url }}" class="card-img-top" alt="{{ space.name }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ space.name }}</h5>
+                    <p class="card-text">{{ space.location }} - ${{ space.price_per_hour }} за годину</p>
+                    <a href="{% url 'coworking_space_detail' space_id=space.pk %}" class="btn btn-primary">Детальніше</a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

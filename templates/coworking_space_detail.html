@@ -1,0 +1,316 @@
+{% extends "base_generic.html" %}
+{% block content %}
+<div class="card mb-4">
+    {% if coworking_space.image %}
+        <img src="{{ coworking_space.image.url }}" class="card-img-top" alt="{{ coworking_space.name }}">
+    {% endif %}
+    <div class="card-body">
+        <h2 class="card-title">{{ coworking_space.name }}</h2>
+        <p class="card-text">{{ coworking_space.description }}</p>
+        <p class="card-text"><strong>Ціна:</strong> ${{ coworking_space.price_per_hour }} за годину</p>
+        <p class="card-text"><strong>Адреса</strong> {{ coworking_space.address }} </p>
+    </div>
+</div>
+
+<div id="seating-map">
+    <!-- Seating map will be dynamically loaded here -->
+</div>
+
+<h3 class="mt-4">Відгуки</h3>
+<div class="list-group mb-4">
+    {% for review in reviews %}
+        <div class="list-group-item">
+            <h5>{{ review.user.username }} - {{ review.rating }}/5</h5>
+            <p>{{ review.comment }}</p>
+        </div>
+    {% empty %}
+        <p>Немає відгуків</p>
+    {% endfor %}
+</div>
+
+<!-- Modal for Seat Reservation -->
+<!-- Modal for Seat Reservation -->
+<div id="reservation-modal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Підтвердити бронювання</h5>
+                <button type="button" class="btn-close" onclick="closeModal()"></button>
+            </div>
+            <div class="modal-body">
+                <p>Ви хочете забронювати місце <strong id="selected-seat-id"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="confirmReservation()">Так, підтвердити</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Скасувати</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="mt-5">Залишити відгук</h3>
+<form id="review-form" method="POST" class="p-4 border rounded shadow-sm" style="background-color: #f9f9f9;">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        <label for="rating" class="form-label"><strong>Рейтинг:</strong></label>
+        <select name="rating" id="rating" class="form-select" required>
+            <option value="5">5 - Відмінно</option>
+            <option value="4">4 - Дуже добре</option>
+            <option value="3">3 - Добре</option>
+            <option value="2">2 - Задовільно</option>
+            <option value="1">1 - Погано</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="comment" class="form-label"><strong>Коментар:</strong></label>
+        <textarea name="comment" id="comment" class="form-control" rows="3" placeholder="Напишіть ваш відгук тут..." required></textarea>
+    </div>
+
+    <button type="button" class="btn btn-primary w-100" onclick="submitReview()">Додати відгук</button>
+</form>
+
+<!-- Styles and Scripts -->
+<style>
+/* Стилізація модального вікна */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+        overflow: hidden;
+    }
+    .modal.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-dialog {
+        background-color: #fff;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        animation: fadeIn 0.3s ease-out;
+    }
+    .modal-header {
+        padding: 1rem;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header .modal-title {
+        font-size: 1.25rem;
+        font-weight: bold;
+        margin: 0;
+    }
+    .modal-header .btn-close {
+        border: none;
+        background: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+    .modal-body {
+        padding: 1rem;
+        font-size: 1rem;
+        color: #333;
+    }
+    .modal-footer {
+        padding: 1rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        border-top: 1px solid #ddd;
+    }
+    .modal-footer .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        font-weight: bold;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    .modal-footer .btn-success {
+        background-color: #28a745;
+        color: #fff;
+        border: none;
+    }
+    .modal-footer .btn-secondary {
+        background-color: #6c757d;
+        color: #fff;
+        border: none;
+    }
+    .modal-footer .btn:hover {
+        opacity: 0.9;
+    }
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    #review-form {
+        max-width: 600px;
+        margin: 20px auto;
+    }
+
+    #review-form label {
+        font-weight: 500;
+        color: #333;
+    }
+
+    #review-form .form-select,
+    #review-form .form-control {
+        border-radius: 8px;
+        padding: 10px;
+    }
+
+    #review-form button {
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    #seating-map {
+        position: relative;
+        width: 635px;
+        height: 330px;
+        background: #D9D9D9;
+        border: 2px solid #333;
+        margin: 20px auto;
+    }
+    .table {
+        position: absolute;
+        width: 63px;
+        height: 100px;
+        background: #848484;
+        text-align: center;
+        line-height: 100px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    .table.available { background-color: #28a745; }
+    .table.occupied { background-color: #dc3545; }
+    .modal { display: none; /* Modal styling here */ }
+    .modal.active { display: block; }
+</style>
+
+<script>
+    const coworking_space_id = {{ coworking_space.id }};
+    let selectedSeatId;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        reloadSeats();
+    });
+
+    function reloadSeats() {
+        fetch(`/get_seats/${coworking_space_id}/`)
+            .then(response => response.json())
+            .then(data => {
+                const seatingMap = document.getElementById('seating-map');
+                seatingMap.innerHTML = '';  // Clear the current seats
+
+                data.seats.forEach(seat => {
+                    const seatDiv = document.createElement('div');
+                    seatDiv.className = `table ${seat.is_occupied ? 'occupied' : 'available'}`;
+                    seatDiv.dataset.seatId = seat.seat_id;
+                    seatDiv.textContent = seat.seat_id;
+                    seatDiv.style.top = `${seat.top_position}%`;
+                    seatDiv.style.left = `${seat.left_position}%`;
+
+                    // Add click event for available seats
+                    if (!seat.is_occupied) {
+                        seatDiv.addEventListener('click', () => {
+                            selectedSeatId = seat.seat_id;
+                            openModal();
+                        });
+                    }
+
+                    seatingMap.appendChild(seatDiv);
+                });
+            });
+    }
+
+    function openModal() {
+    const modal = document.getElementById('reservation-modal');
+    document.getElementById('selected-seat-id').textContent = selectedSeatId; // Відображає ID обраного місця
+    modal.classList.add('active');
+}
+
+function closeModal() {
+    const modal = document.getElementById('reservation-modal');
+    modal.classList.remove('active');
+}
+
+    function confirmReservation() {
+        if (selectedSeatId) {
+            fetch(`/reserve_seat/${selectedSeatId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    reloadSeats();
+                } else {
+                    alert(data.error);
+                }
+                closeModal();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error during reservation.');
+            });
+        } else {
+            alert('Error: no seat selected.');
+            closeModal();
+        }
+    }
+      function submitReview() {
+        const submitButton = document.querySelector('#review-form button');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Додається...';
+
+        const formData = new FormData(document.getElementById('review-form'));
+
+        fetch(`/space/{{ coworking_space.id }}/add_review/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Додати відгук';
+
+            if (data.success) {
+                alert(data.message);
+                location.reload(); // Reload page to display the new review
+            } else {
+                alert('Error: ' + (data.error || 'Could not submit review.'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: Could not submit review.');
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Додати відгук';
+        });
+    }
+</script>
+{% endblock %}
